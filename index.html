@@ -1,0 +1,163 @@
+<html>
+
+    <head>
+
+        <title>Software Rasterizer</title>
+
+        <style>
+
+            body {
+                background: #111;
+            }
+
+            canvas {
+                width: 100%;
+                height: 100%;
+                background: #222;
+            }
+
+        </style>
+
+    </head>
+
+    <body>
+
+        <canvas></canvas>
+
+        <script src="resource/stone.js"></script>
+        <script src="resource/SpacePotato_2_downscale.js"></script>
+
+        <script src="src/texture.js"></script>
+        <script src="src/vector.js"></script>
+        <script src="src/vertex.js"></script>
+        <script src="src/triangle.js"></script>
+        
+        <script>
+            
+            let canvas = document.querySelector("canvas");
+            let ctx = canvas.getContext("2d");
+            canvas.width = canvas.getBoundingClientRect().width;
+            canvas.height = canvas.getBoundingClientRect().height;
+            let img = ctx.createImageData(canvas.width, canvas.height);
+
+            // let tris = [
+            //     new Triangle(
+            //         new Vertex(new Vec2(0, 0), new Vec2(0, 0)),
+            //         new Vertex(new Vec2(500, 0), new Vec2(16, 0)),
+            //         new Vertex(new Vec2(0, 500), new Vec2(0, 16))
+            //     ),
+            //     new Triangle(
+            //         new Vertex(new Vec2(0, 500), new Vec2(0, 16)),
+            //         new Vertex(new Vec2(500, 0), new Vec2(16, 0)),
+            //         new Vertex(new Vec2(500, 500), new Vec2(16, 16))
+            //     )
+            // ];
+            // let tex = new Texture(TEXTURE_STONE);
+
+            let tris = [
+                new Triangle(
+                    new Vertex(new Vec2(0, 0), new Vec2(0, 0)),
+                    new Vertex(new Vec2(640, 0), new Vec2(256, 0)),
+                    new Vertex(new Vec2(0, 360), new Vec2(0, 144))
+                ),
+                new Triangle(
+                    new Vertex(new Vec2(0, 360), new Vec2(0, 144)),
+                    new Vertex(new Vec2(640, 0), new Vec2(256, 0)),
+                    new Vertex(new Vec2(640, 360), new Vec2(256, 144))
+                )
+            ];
+            let tex = new Texture(TEXTURE_SPACEPOTATO_2_DOWNSCALE);
+
+            let selectedTri = 0;
+            let selectedVert = 0;
+            canvas.addEventListener("mousedown", (e) => {
+                tris[selectedTri].ind(selectedVert).pos = new Vec2(
+                    e.offsetX,
+                    e.offsetY
+                );
+            });
+            document.addEventListener("keydown", (e) => {
+                switch(e.code) {
+                    case "ArrowUp":
+                        selectedTri++;
+                        selectedTri %= tris.length;
+                        break;
+                    case "ArrowDown":
+                        selectedTri--;
+                        while(selectedTri < 0) selectedTri += tris.length;
+                        break;
+                    case "ArrowRight":
+                        selectedVert++;
+                        selectedVert %= 3;
+                        break;
+                }
+            });
+
+            function draw() {
+                const START = Date.now();
+
+                for(let x=0; x < canvas.width; x++) {
+                    for(let y=0; y < canvas.height; y++) {
+                        let ind = (x + y * canvas.width) * 4;
+                        // Background
+                        img.data[ind+0] = 0;
+                        img.data[ind+1] = 0;
+                        img.data[ind+2] = 0;
+                        img.data[ind+3] = 255;
+
+                        for(let i in tris) {
+
+                            if(tris[i].containsPoint(new Vec2(x, y))) {
+                                let uv = tris[i].textureCoordinate(new Vec2(x, y));
+                                // img.data[ind+0] = uv.x*(255/16);
+                                // img.data[ind+1] = uv.y*(255/16);
+                                // img.data[ind+2] = 0;
+                                let color = tex.get(uv);
+                                img.data[ind+0] = color.x;
+                                img.data[ind+1] = color.y;
+                                img.data[ind+2] = color.z;
+                                // Editor
+                                if(selectedTri == i) {
+                                    img.data[ind+0] += 100;
+                                    img.data[ind+1] -= 100;
+                                    img.data[ind+2] -= 100;
+                                }
+                            }
+                        }
+
+                    }
+                }
+
+                ctx.putImageData(img, 0, 0);
+
+
+
+                // Info
+                const END = Date.now();
+                ctx.fillStyle = "white";
+                ctx.font = "18px serif";
+                ctx.fillText(`DrawTime: ${END-START}ms`, 5, 18);
+                ctx.fillText(`SelectedTri: ${selectedTri}`, 5, 38);
+                ctx.fillText(`SelectedVert: ${selectedVert}`, 5, 58);
+                // Editor
+                ctx.fillStyle = "blue";
+                ctx.beginPath();
+                ctx.arc(tris[selectedTri].ind(selectedVert).pos.x, tris[selectedTri].ind(selectedVert).pos.y, 5, 0, Math.PI*2);
+                ctx.fill();
+                // Next frame
+                requestAnimationFrame(draw);
+            }
+
+
+            setTimeout(() => draw(), 100);
+
+
+
+
+        </script>
+
+
+    </body>
+
+
+</html>
